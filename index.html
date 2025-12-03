@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://npm.elemecdn.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
-    
-    <title>AI抠图（强哥·最终极速版）</title>
+    <title>AI抠图（强哥·修复版）</title>
     <style>
-        /* --- 100% 还原 UI --- */
+        /* --- UI 样式 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -19,6 +17,7 @@
             background: linear-gradient(to right, #fff, #00d4ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             text-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+            display: block; /* 确保显示 */
         }
         .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
         
@@ -27,6 +26,7 @@
             display: flex; justify-content: center; align-items: center; cursor: pointer;
             border-radius: 50%; transition: all 0.4s ease-out; margin: 50px;
             box-shadow: 0 0 0 25px rgba(31, 78, 121, 0.4), 0 0 0 50px rgba(31, 78, 121, 0.25), 0 0 0 80px rgba(31, 78, 121, 0.1); 
+            background: rgba(30, 58, 95, 0.3); /* 增加背景色确保可见 */
         }
         .circle-drop-zone:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 0 0 25px rgba(0, 212, 255, 0.3), 0 0 0 50px rgba(0, 212, 255, 0.15), 0 0 0 80px rgba(0, 212, 255, 0.05); }
         .dashed-ring { position: absolute; inset: 5px; border: 4px dashed #3b6991; border-radius: 50%; animation: spinSlow 24s linear infinite; }
@@ -52,4 +52,124 @@
         .result-area { width: 100%; gap: 30px; grid-template-columns: 1fr 1fr; background: #1e293b; padding: 40px; border-radius: 20px; }
         .img-box { background: #0f172a; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid #334155; }
         img { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 12px; }
-        .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2
+        .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2a2a2a; }
+        
+        .btn { background: linear-gradient(to right, #00d4ff, #0099ff); color: #0f172a; font-weight: 800; border: none; padding: 16px 32px; border-radius: 10px; cursor: pointer; margin-top: 35px; width: 100%; font-size: 18px; transition: 0.3s; box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 8px 25px rgba(0, 212, 255, 0.5); color: white; }
+        
+        .error-msg { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 1px solid #ff6b6b; text-align: left; }
+    </style>
+</head>
+<body>
+
+<h1 class="main-title">AI抠图（强哥版）</h1>
+
+<div class="main-container">
+    <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
+        <div class="dashed-ring"></div>
+        <div class="inner-content">
+            <div class="icon-folder">📁</div>
+            <h3>拖拽图片到这里</h3>
+            <p class="sub-text">或者, <span class="highlight-link">点击浏览本地文件</span></p>
+            <p class="sub-text" style="font-size: 14px; margin-top: 20px; opacity: 0.7;">🚀 极速通道 Ready</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
+    </div>
+
+    <div class="progress-box" id="progressBox">
+        <div style="display:flex; justify-content:space-between; color:#94a3b8;">
+            <span id="statusLabel">准备中...</span>
+            <span id="percentLabel">0%</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="error-msg" id="errorBox"></div>
+
+    <div class="result-area" id="resultArea">
+        <div class="img-box"><h4>原图</h4><img id="origImg"></div>
+        <div class="img-box checkerboard"><h4>AI 抠图结果</h4><img id="resImg"></div>
+    </div>
+    <button class="btn" id="dlBtn" onclick="dl()" style="display:none">📥 下载无损 PNG</button>
+</div>
+
+<script src="https://unpkg.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
+
+<script>
+    // 定义模型数据源
+    const DATA_URL = "https://unpkg.com/@imgly/background-removal-data@1.0.4/dist/";
+
+    let pendingFile = null;
+
+    const dropArea = document.getElementById('dropArea');
+    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.transform='scale(1.02)'; });
+    dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; });
+    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
+
+    function start(file) {
+        pendingFile = file;
+        resetUI();
+        document.getElementById('origImg').src = URL.createObjectURL(file);
+        
+        // 延时一点点执行，给 UI 反应时间
+        setTimeout(() => runAI(), 100);
+    }
+
+    async function runAI() {
+        // 检测库是否加载成功
+        if (typeof imglyRemoveBackground === 'undefined') {
+            showError("网络加载组件慢，请刷新页面再试一次。");
+            return;
+        }
+
+        updateProgress("AI 引擎启动，正在加载模型...", 10);
+        try {
+            const blob = await imglyRemoveBackground(pendingFile, {
+                publicPath: DATA_URL,
+                // 去掉 fetch: { mode: 'cors' }，让浏览器自动处理跨域，兼容性更好
+                progress: (key, cur, total) => {
+                    const pct = Math.round((cur/total)*100);
+                    if(key.includes('fetch')) updateProgress(`加载模型: ${pct}%`, pct);
+                    else updateProgress(`AI 计算中: ${pct}%`, pct);
+                }
+            });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('resImg').src = url;
+            window.dlUrl = url;
+            showResult();
+        } catch (e) {
+            console.error(e);
+            showError(`错误: ${e.message}<br>请确保网络通畅`);
+        }
+    }
+
+    function resetUI() {
+        document.getElementById('errorBox').style.display='none';
+        document.getElementById('resultArea').style.display='none';
+        document.getElementById('dlBtn').style.display='none';
+        document.getElementById('dropArea').style.display='none';
+        document.getElementById('progressBox').style.display='block';
+    }
+    function updateProgress(txt, pct) {
+        document.getElementById('statusLabel').innerText = txt;
+        document.getElementById('percentLabel').innerText = pct + '%';
+        document.getElementById('progressFill').style.width = pct + '%';
+    }
+    function showResult() {
+        document.getElementById('progressBox').style.display='none';
+        document.getElementById('resultArea').style.display='grid';
+        document.getElementById('dlBtn').style.display='block';
+    }
+    function showError(msg) {
+        document.getElementById('progressBox').style.display='none';
+        document.getElementById('dropArea').style.display='flex';
+        document.getElementById('errorBox').style.display='block';
+        document.getElementById('errorBox').innerHTML = `<strong>❌ 出错了</strong><br>${msg}`;
+    }
+    function dl() {
+        const a = document.createElement('a');
+        a.href = window.dlUrl; a.download = '抠图结果.png'; a.click();
+    }
+</script>
+</body>
+</html>
