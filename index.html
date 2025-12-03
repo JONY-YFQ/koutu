@@ -1,70 +1,6 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·知乎极速版）</title>
-    <style>
-        /* --- 视觉保持不变 --- */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
-            color: #fff; margin: 0; padding: 40px 20px;
-            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-        }
-        .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; }
-        .circle-drop-zone {
-            position: relative; width: 480px; height: 480px;
-            display: flex; justify-content: center; align-items: center; cursor: pointer;
-            border-radius: 50%; margin: 50px;
-            background: rgba(30, 58, 95, 0.3);
-            box-shadow: 0 0 0 25px rgba(31, 78, 121, 0.4);
-            transition: 0.3s;
-        }
-        .circle-drop-zone:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 212, 255, 0.3); }
-        .icon-folder { font-size: 80px; margin-bottom: 20px; color: #00d4ff; }
-        h3 { font-size: 28px; margin: 0 0 10px 0; }
-        .sub-text { color: #94a3b8; font-size: 16px; }
-        .status-badge {
-            margin-top: 20px; padding: 8px 16px; border-radius: 20px; font-size: 14px;
-            background: #334155; color: #fbbf24; transition: 0.3s;
-        }
-        .result-area { display: none; margin-top: 40px; text-align: center; }
-        img { max-width: 100%; border-radius: 12px; border: 1px solid #475569; }
-        .btn { background: #00d4ff; color: #000; font-weight: bold; padding: 15px 40px; border-radius: 30px; border: none; font-size: 18px; margin-top: 20px; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (知乎源极速版)</h1>
-
-    <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
-        <div style="z-index: 2; text-align: center;">
-            <div class="icon-folder">📁</div>
-            <h3>点击或拖拽上传</h3>
-            <div class="status-badge" id="statusBadge">⏳ 正在连接数据源...</div>
-        </div>
-        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
-    </div>
-
-    <div class="result-area" id="resultArea">
-        <h3>🎉 处理结果</h3>
-        <img id="resImg">
-        <br>
-        <button class="btn" onclick="dl()">下载图片</button>
-    </div>
-</div>
-
-<script type="module">
-    import { removeBackground } from "./imgly.js";
-    window.imglyRemoveBackground = removeBackground;
-    console.log("Local Engine Loaded!");
-</script>
-
 <script>
-    // ✅ 修复点：将 unpkg.zhimg.com 替换为 cdn.jsdelivr.net
-    // 这个源更稳定，且能正确索引到 manifest.json 文件
+    // ✅ 修复核心：换成国际最稳的 jsdelivr 源，
+    // 这个源里肯定有 manifest.json，不会报错 "metadata not found"
     const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
@@ -96,13 +32,14 @@
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL,
+                publicPath: DATA_URL, // 👈 这里是关键，必须用上面定义的那个新地址
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
+                    // 优化了一下提示文案
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 下载资源: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型资源: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 智能计算: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 正在抠图中: ${pct}%`;
                     }
                 }
             });
@@ -116,9 +53,8 @@
             
         } catch (e) {
             console.error(e);
-            // 详细报错提示
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("资源加载失败！\n错误信息：" + e.message + "\n请尝试刷新页面或检查网络。");
+            alert("资源加载失败！\n请检查网络连接。\n错误详情：" + e.message);
         }
     }
 
@@ -127,5 +63,3 @@
         a.href = window.dlUrl; a.download = '抠图结果.png'; a.click();
     }
 </script>
-</body>
-</html>
