@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（VPN专用适配版）</title>
+    <title>AI抠图（Vercel 中转版）</title>
     <style>
-        /* --- 视觉保持不变 --- */
+        /* --- 样式不变 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (VPN专用版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (Vercel 中转版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,24 +57,23 @@
 </div>
 
 <script type="module">
-    // 1. 引擎代码：使用国际通用的 unpkg 源，版本锁定 1.5.1
-    // 既然开了 VPN，访问这个源会非常快
+    // 1. 引擎：直接引用 1.5.1 国际版
     import { removeBackground } from "https://unpkg.com/@imgly/background-removal@1.5.1/dist/imgly-background-removal.esm.js";
     window.imglyRemoveBackground = removeBackground;
-    console.log("International Engine Loaded!");
+    console.log("Engine Loaded!");
 </script>
 
 <script>
-    // 2. 数据源：【关键修改】使用国际 unpkg 源
-    // 配合你的 VPN，这就像在高速公路上开车，一路畅通，不会出现“回国绕路”的超时
-    const DATA_URL = "https://unpkg.com/@imgly/background-removal-data@1.5.1/dist/";
+    // ✅ 2. 关键修改：路径改为本地的 '/ai-model/'
+    // 实际上是让 Vercel 服务器去帮你从外网取数据，绕过你本地的网络限制
+    const DATA_URL = "/ai-model/";
 
     let isReady = false;
 
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (国际线路)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Vercel Proxy)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -90,16 +89,16 @@
     async function start(file) {
         if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在通过 VPN 下载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 Vercel 正在加速加载模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 指向国际源
+                publicPath: DATA_URL, // 指向 Vercel 转发路径
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 加载资源: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 云端加速下载: ${pct}%`;
                     } else {
                         document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
                     }
@@ -116,7 +115,7 @@
         } catch (e) {
             console.error(e);
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("加载失败！\n请确保您的 VPN 连接稳定，并且可以访问国际网络。");
+            alert("处理失败！建议刷新后重试。");
         }
     }
 
