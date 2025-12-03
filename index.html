@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·最终修复版）</title>
+    <title>AI抠图（强哥·知乎极速版）</title>
     <style>
         /* --- 视觉保持不变 --- */
         body {
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (本地引擎+稳定源)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (知乎源极速版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -63,13 +63,13 @@
 </script>
 
 <script>
-    // ✅ 关键修改：
-    // 之前用的饿了么源 (elemecdn) 缺少 1.7.0 的索引文件，导致报错 "Resource metadata not found"。
-    // 这里我们换成 jsDelivr，它文件最全，配合你的本地引擎一定能行。
-    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
+    // ✅ 关键修改：换用【知乎】的 Unpkg 镜像
+    // 这里的版本号必须是 1.7.0，和你上传的 js 文件保持一致
+    const DATA_URL = "https://unpkg.zhimg.com/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
 
+    // 1. 也是轮询检测，确保 imgly.js 加载完
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
@@ -82,27 +82,27 @@
     }
     checkEngine();
 
-    // 拖拽逻辑
+    // 2. 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); });
     dropArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 
+    // 3. 开始运行
     async function start(file) {
         if (!isReady) { alert("引擎初始化中，请稍等..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在下载模型并计算...";
+        document.getElementById('statusBadge').innerText = "🚀 正在从知乎节点下载模型...";
+        document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
                 publicPath: DATA_URL,
-                // debug: true, // 如果还不行，可以开启这个看控制台
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
-                    // 优化显示文案
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型... ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载资源: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 AI 计算中... ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 智能计算: ${pct}%`;
                     }
                 }
             });
@@ -115,8 +115,10 @@
             document.getElementById('resultArea').style.display = 'block';
             
         } catch (e) {
-            alert("错误详情: " + e.message);
-            document.getElementById('statusBadge').innerText = "❌ 失败";
+            console.error(e);
+            // 详细报错提示
+            document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
+            alert("资源加载失败！\n请检查：\n1. 是否开启了“广告屏蔽”插件？（请关闭）\n2. 尝试切换手机热点网络。");
         }
     }
 
