@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·全能修复版）</title>
+    <title>AI抠图（强哥·修复版）</title>
     <style>
-        /* --- 视觉样式保持不变 --- */
+        /* --- 视觉样式 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (全云端单文件版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (自动适配版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,19 +57,20 @@
 </div>
 
 <script type="module">
+    // 引用核心库 (代码用最新的 1.7.0)
     import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
-    // 挂载到全局变量，让下面的脚本能用
     window.imglyRemoveBackground = removeBackground;
     console.log("Cloud Engine Loaded!");
 </script>
 
 <script>
-    // 核心修改 2：模型数据源使用稳定的 jsdelivr
-    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
+    // ✅ 修复点：数据包路径使用 @latest，不写死版本号
+    // 这样它会自动找到真实存在的 1.4.5 或其他版本，不会报 404
+    const DATA_URL = "https://unpkg.com/@imgly/background-removal-data@latest/dist/";
 
     let isReady = false;
 
-    // 轮询检测引擎是否加载完毕
+    // 1. 检查引擎
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
@@ -77,40 +78,37 @@
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
-            // 如果还没好，0.5秒后再查一次
             setTimeout(checkEngine, 500);
         }
     }
-    // 启动检测
     checkEngine();
 
-    // 拖拽逻辑
+    // 2. 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); });
     dropArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 
-    // 开始处理
+    // 3. 开始处理
     async function start(file) {
-        if (!isReady) { alert("网络连接中，请稍等几秒再试..."); return; }
+        if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在下载 AI 模型...";
+        document.getElementById('statusBadge').innerText = "🚀 正在下载模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
             // 调用 AI
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 设置模型下载地址
+                publicPath: DATA_URL, // 这里使用了 @latest 的 unpkg 地址
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 加载组件: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 正在抠图: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
                     }
                 }
             });
             
-            // 显示结果
             const url = URL.createObjectURL(blob);
             document.getElementById('resImg').src = url;
             window.dlUrl = url;
@@ -120,8 +118,8 @@
             
         } catch (e) {
             console.error(e);
-            document.getElementById('statusBadge').innerText = "❌ 出错了";
-            alert("处理失败！\n可能是网络问题导致无法连接到 AI 模型库。\n错误信息：" + e.message);
+            document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
+            alert("处理失败！\n请检查网络连接。\n错误详情：" + e.message);
         }
     }
 
