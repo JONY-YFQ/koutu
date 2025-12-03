@@ -63,9 +63,9 @@
 </script>
 
 <script>
-    // ✅ 关键修改：换用【知乎】的 Unpkg 镜像
-    // 这里的版本号必须是 1.7.0，和你上传的 js 文件保持一致
-    const DATA_URL = "https://unpkg.zhimg.com/@imgly/background-removal-data@1.7.0/dist/";
+    // ✅ 修复点：将 unpkg.zhimg.com 替换为 cdn.jsdelivr.net
+    // 这个源更稳定，且能正确索引到 manifest.json 文件
+    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
 
@@ -91,7 +91,7 @@
     async function start(file) {
         if (!isReady) { alert("引擎初始化中，请稍等..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在从知乎节点下载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 正在下载 AI 模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
@@ -118,7 +118,7 @@
             console.error(e);
             // 详细报错提示
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("资源加载失败！\n请检查：\n1. 是否开启了“广告屏蔽”插件？（请关闭）\n2. 尝试切换手机热点网络。");
+            alert("资源加载失败！\n错误信息：" + e.message + "\n请尝试刷新页面或检查网络。");
         }
     }
 
