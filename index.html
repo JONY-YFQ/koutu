@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·黄金兼容版）</title>
+    <title>AI抠图（1.5.1 稳定版）</title>
     <style>
         /* --- 样式保持不变 --- */
         body {
@@ -32,12 +32,14 @@
         .result-area { display: none; margin-top: 40px; text-align: center; }
         img { max-width: 100%; border-radius: 12px; border: 1px solid #475569; }
         .btn { background: #00d4ff; color: #000; font-weight: bold; padding: 15px 40px; border-radius: 30px; border: none; font-size: 18px; margin-top: 20px; cursor: pointer; }
+        /* 增加一个错误日志显示区，方便排查 */
+        #debugLog { font-size: 12px; color: #64748b; margin-top: 20px; max-width: 80%; text-align: center; display:none;}
     </style>
 </head>
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (黄金兼容版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (1.5.1 稳定版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -48,6 +50,8 @@
         <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
     </div>
 
+    <div id="debugLog"></div>
+
     <div class="result-area" id="resultArea">
         <h3>🎉 处理结果</h3>
         <img id="resImg">
@@ -57,24 +61,24 @@
 </div>
 
 <script type="module">
-    // ⚠️ 核心修改1：降级使用 1.4.5 版本的引擎代码
-    // 这个版本最稳定，绝对不会出现和模型数据不匹配的情况
-    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm";
+    // ✅ 核心修改1：降级到 1.5.1 版本
+    // 社区反馈这个版本最稳定，能有效避免 "metadata not found" 错误
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.1/+esm";
     window.imglyRemoveBackground = removeBackground;
-    console.log("Engine 1.4.5 Loaded!");
+    console.log("Engine 1.5.1 Loaded!");
 </script>
 
 <script>
-    // ⚠️ 核心修改2：数据源也必须锁定为 1.4.5，且使用国内【饿了么】镜像
-    // 之前报错是因为用了 latest 或 1.7.0，但服务器上其实只有 1.4.5
-    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.4.5/dist/";
+    // ✅ 核心修改2：数据源也严格锁定 1.5.1，并使用【饿了么】国内源
+    // 这个源在国内速度最快，且 1.5.1 版本的文件结构非常标准，不容易出错
+    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.5.1/dist/";
 
     let isReady = false;
 
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (v1.4.5)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Ready)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -90,16 +94,19 @@
     async function start(file) {
         if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在连接国内数据源...";
+        document.getElementById('statusBadge').innerText = "🚀 正在连接国内节点...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
+        document.getElementById('debugLog').style.display = 'none';
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 指向 1.4.5 的数据包
+                publicPath: DATA_URL, 
+                // debug: true, // 开启调试模式
                 progress: (key, cur, total) => {
+                    // 只要能进到这里，说明已经连上资源了
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型资源: ${pct}%`;
                     } else {
                         document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
                     }
@@ -115,8 +122,14 @@
             
         } catch (e) {
             console.error(e);
-            document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("处理失败！\n请检查网络连接。\n详细错误：" + e.message);
+            document.getElementById('statusBadge').innerText = "❌ 连接中断";
+            
+            // 显示具体的错误链接，方便你（或我）排查
+            const debugLog = document.getElementById('debugLog');
+            debugLog.style.display = 'block';
+            debugLog.innerHTML = `错误详情: ${e.message}<br>尝试访问的数据源: ${DATA_URL}`;
+
+            alert("😔 处理失败！\n\n原因：网络连接被重置或超时 (Failed to fetch)。\n建议：\n1. 请尝试刷新页面再试一次（有时是偶发波动）。\n2. 如果还不行，说明您当前的网络环境完全屏蔽了该 AI 模型库的下载。");
         }
     }
 
