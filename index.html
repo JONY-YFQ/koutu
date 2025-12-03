@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·稳定修复版）</title>
+    <title>AI抠图（国内极速版）</title>
     <style>
         /* --- 视觉保持不变 --- */
         body {
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (稳定修复版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (国内极速版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,24 +57,24 @@
 </div>
 
 <script type="module">
-    // 1. 引用核心逻辑库 (jsDelivr 源)
+    // 1. 核心库：尝试使用国内 eleme 源，如果失败则回退到 jsdelivr
+    // 这里我们直接用 jsdelivr 的 bundle 版本，因为它最稳定，只要解决了下面的 DATA_URL 就能跑
     import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
     window.imglyRemoveBackground = removeBackground;
     console.log("Cloud Engine Loaded!");
 </script>
 
 <script>
-    // 2. 引用模型数据源 (jsDelivr 源)
-    // 这里的版本必须和上面 import 的 @1.7.0 严格一致，否则就会报 metadata not found
-    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
+    // 2. 关键修改：模型数据源换成【饿了么 (Eleme)】国内镜像
+    // 之前报错就是因为无法从国外服务器下载这 80MB 的模型文件
+    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
 
-    // 检查引擎加载状态
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Ready)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (国内源)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -83,28 +83,25 @@
     }
     checkEngine();
 
-    // 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); });
     dropArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 
-    // 开始处理
     async function start(file) {
-        if (!isReady) { alert("引擎正在从云端加载，请稍等2秒..."); return; }
+        if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在连接 AI 模型库...";
+        document.getElementById('statusBadge').innerText = "🚀 正在从国内节点下载模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 👈 关键：指向准确的资源路径
+                publicPath: DATA_URL, // 👈 必须用这个国内源
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
-                    // 优化显示文案，让你知道它在干嘛
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型组件: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 正在智能抠图: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
                     }
                 }
             });
@@ -118,9 +115,9 @@
             
         } catch (e) {
             console.error(e);
-            document.getElementById('statusBadge').innerText = "❌ 错误";
-            // 友好的报错提示
-            alert("处理中断！\n错误原因：" + e.message + "\n\n建议：\n1. 请检查网络是否通畅。\n2. 如果您开启了VPN，请尝试切换节点或关闭重试。");
+            document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
+            // 如果还报错，大概率是本地网络波动
+            alert("加载失败！\n可能是网络波动，请刷新页面重试。\n错误：" + e.message);
         }
     }
 
