@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
-    <title>AI抠图（强哥·云端复刻版）</title>
+    <script src="https://npm.elemecdn.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
+    
+    <title>AI抠图（强哥·最终极速版）</title>
     <style>
-        /* --- 100% 还原 v7.0 强哥定制版 UI --- */
+        /* --- 100% 还原 UI --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
             color: #fff; margin: 0; padding: 40px 20px;
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
         }
-
         h1.main-title {
             font-size: 32px; margin-bottom: 60px; font-weight: 700;
             background: linear-gradient(to right, #fff, #00d4ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             text-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
         }
-
         .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
         
-        /* 核心圆形拖拽区 */
         .circle-drop-zone {
             position: relative; width: 480px; height: 480px;
             display: flex; justify-content: center; align-items: center; cursor: pointer;
@@ -31,7 +29,6 @@
             box-shadow: 0 0 0 25px rgba(31, 78, 121, 0.4), 0 0 0 50px rgba(31, 78, 121, 0.25), 0 0 0 80px rgba(31, 78, 121, 0.1); 
         }
         .circle-drop-zone:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 0 0 25px rgba(0, 212, 255, 0.3), 0 0 0 50px rgba(0, 212, 255, 0.15), 0 0 0 80px rgba(0, 212, 255, 0.05); }
-        
         .dashed-ring { position: absolute; inset: 5px; border: 4px dashed #3b6991; border-radius: 50%; animation: spinSlow 24s linear infinite; }
         .circle-drop-zone:hover .dashed-ring { border-color: #00d4ff; }
         @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -55,123 +52,4 @@
         .result-area { width: 100%; gap: 30px; grid-template-columns: 1fr 1fr; background: #1e293b; padding: 40px; border-radius: 20px; }
         .img-box { background: #0f172a; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid #334155; }
         img { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 12px; }
-        .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2a2a2a; }
-        
-        .btn { background: linear-gradient(to right, #00d4ff, #0099ff); color: #0f172a; font-weight: 800; border: none; padding: 16px 32px; border-radius: 10px; cursor: pointer; margin-top: 35px; width: 100%; font-size: 18px; transition: 0.3s; box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5); color: white; }
-        
-        .error-msg { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 1px solid #ff6b6b; text-align: left; }
-    </style>
-</head>
-<body>
-
-<h1 class="main-title">AI抠图（强哥版）</h1>
-
-<div class="main-container">
-    <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
-        <div class="dashed-ring"></div>
-        <div class="inner-content">
-            <div class="icon-folder">📁</div>
-            <h3>拖拽图片到这里</h3>
-            <p class="sub-text">或者, <span class="highlight-link">点击浏览本地文件</span></p>
-            <p class="sub-text" style="font-size: 14px; margin-top: 20px; opacity: 0.7;">🚀 国际加速通道</p>
-        </div>
-        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
-    </div>
-
-    <div class="progress-box" id="progressBox">
-        <div style="display:flex; justify-content:space-between; color:#94a3b8;">
-            <span id="statusLabel">准备中...</span>
-            <span id="percentLabel">0%</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-fill" id="progressFill"></div></div>
-    </div>
-
-    <div class="error-msg" id="errorBox"></div>
-
-    <div class="result-area" id="resultArea">
-        <div class="img-box"><h4>原图</h4><img id="origImg"></div>
-        <div class="img-box checkerboard"><h4>AI 抠图结果</h4><img id="resImg"></div>
-    </div>
-    <button class="btn" id="dlBtn" onclick="dl()" style="display:none">📥 下载无损 PNG</button>
-</div>
-
-<script>
-    // 配置模型数据的公共路径，使用 jsdelivr 国际 CDN
-    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.0.4/dist/";
-
-    let pendingFile = null;
-
-    // 拖拽逻辑
-    const dropArea = document.getElementById('dropArea');
-    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.transform='scale(1.02)'; });
-    dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; });
-    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
-
-    function start(file) {
-        pendingFile = file;
-        resetUI();
-        document.getElementById('origImg').src = URL.createObjectURL(file);
-        
-        // 核心：直接调用 AI，因为我们在 head 里已经标准引入了库
-        runAI();
-    }
-
-    async function runAI() {
-        // 检查库是否加载成功
-        if (typeof imglyRemoveBackground === 'undefined') {
-            showError("核心组件加载失败，请检查网络连接或刷新页面。");
-            return;
-        }
-
-        updateProgress("AI 引擎启动，下载模型...", 10);
-        try {
-            const blob = await imglyRemoveBackground(pendingFile, {
-                publicPath: DATA_URL, // 设置模型资源路径
-                progress: (key, cur, total) => {
-                    const pct = Math.round((cur/total)*100);
-                    if(key.includes('fetch')) updateProgress(`下载模型组件: ${pct}%`, pct);
-                    else updateProgress(`AI 计算中: ${pct}%`, pct);
-                }
-            });
-            const url = URL.createObjectURL(blob);
-            document.getElementById('resImg').src = url;
-            window.dlUrl = url;
-            showResult();
-        } catch (e) {
-            console.error(e);
-            showError(`处理失败: ${e.message}<br>提示：首次使用需下载约40MB模型，请保持网络畅通。`);
-        }
-    }
-
-    // UI 辅助函数
-    function resetUI() {
-        document.getElementById('errorBox').style.display='none';
-        document.getElementById('resultArea').style.display='none';
-        document.getElementById('dlBtn').style.display='none';
-        document.getElementById('dropArea').style.display='none';
-        document.getElementById('progressBox').style.display='block';
-    }
-    function updateProgress(txt, pct) {
-        document.getElementById('statusLabel').innerText = txt;
-        document.getElementById('percentLabel').innerText = pct + '%';
-        document.getElementById('progressFill').style.width = pct + '%';
-    }
-    function showResult() {
-        document.getElementById('progressBox').style.display='none';
-        document.getElementById('resultArea').style.display='grid';
-        document.getElementById('dlBtn').style.display='block';
-    }
-    function showError(msg) {
-        document.getElementById('progressBox').style.display='none';
-        document.getElementById('dropArea').style.display='flex';
-        document.getElementById('errorBox').style.display='block';
-        document.getElementById('errorBox').innerHTML = `<strong>❌ 出错了</strong><br>${msg}`;
-    }
-    function dl() {
-        const a = document.createElement('a');
-        a.href = window.dlUrl; a.download = '抠图结果.png'; a.click();
-    }
-</script>
-</body>
-</html>
+        .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2
