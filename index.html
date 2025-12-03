@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·修复版）</title>
+    <title>AI抠图（强哥·稳定修复版）</title>
     <style>
-        /* --- 视觉样式 --- */
+        /* --- 视觉保持不变 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (自动适配版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (稳定修复版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,24 +57,24 @@
 </div>
 
 <script type="module">
-    // 引用核心库 (代码用最新的 1.7.0)
+    // 1. 引用核心逻辑库 (jsDelivr 源)
     import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
     window.imglyRemoveBackground = removeBackground;
     console.log("Cloud Engine Loaded!");
 </script>
 
 <script>
-    // ✅ 修复点：数据包路径使用 @latest，不写死版本号
-    // 这样它会自动找到真实存在的 1.4.5 或其他版本，不会报 404
-    const DATA_URL = "https://unpkg.com/@imgly/background-removal-data@latest/dist/";
+    // 2. 引用模型数据源 (jsDelivr 源)
+    // 这里的版本必须和上面 import 的 @1.7.0 严格一致，否则就会报 metadata not found
+    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
 
-    // 1. 检查引擎
+    // 检查引擎加载状态
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (可上传)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Ready)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -83,28 +83,28 @@
     }
     checkEngine();
 
-    // 2. 拖拽逻辑
+    // 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); });
     dropArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 
-    // 3. 开始处理
+    // 开始处理
     async function start(file) {
-        if (!isReady) { alert("引擎加载中，请稍后..."); return; }
+        if (!isReady) { alert("引擎正在从云端加载，请稍等2秒..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在下载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 正在连接 AI 模型库...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
-            // 调用 AI
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 这里使用了 @latest 的 unpkg 地址
+                publicPath: DATA_URL, // 👈 关键：指向准确的资源路径
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
+                    // 优化显示文案，让你知道它在干嘛
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型组件: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 正在智能抠图: ${pct}%`;
                     }
                 }
             });
@@ -118,8 +118,9 @@
             
         } catch (e) {
             console.error(e);
-            document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("处理失败！\n请检查网络连接。\n错误详情：" + e.message);
+            document.getElementById('statusBadge').innerText = "❌ 错误";
+            // 友好的报错提示
+            alert("处理中断！\n错误原因：" + e.message + "\n\n建议：\n1. 请检查网络是否通畅。\n2. 如果您开启了VPN，请尝试切换节点或关闭重试。");
         }
     }
 
