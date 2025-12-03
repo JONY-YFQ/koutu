@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·本地最终版）</title>
+    <title>AI抠图（强哥·最终修复版）</title>
     <style>
+        /* --- 视觉保持不变 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -12,7 +13,6 @@
             min-height: 100vh; display: flex; flex-direction: column; align-items: center;
         }
         .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; }
-        
         .circle-drop-zone {
             position: relative; width: 480px; height: 480px;
             display: flex; justify-content: center; align-items: center; cursor: pointer;
@@ -22,16 +22,13 @@
             transition: 0.3s;
         }
         .circle-drop-zone:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 212, 255, 0.3); }
-        
         .icon-folder { font-size: 80px; margin-bottom: 20px; color: #00d4ff; }
         h3 { font-size: 28px; margin: 0 0 10px 0; }
         .sub-text { color: #94a3b8; font-size: 16px; }
-
         .status-badge {
             margin-top: 20px; padding: 8px 16px; border-radius: 20px; font-size: 14px;
             background: #334155; color: #fbbf24; transition: 0.3s;
         }
-        
         .result-area { display: none; margin-top: 40px; text-align: center; }
         img { max-width: 100%; border-radius: 12px; border: 1px solid #475569; }
         .btn { background: #00d4ff; color: #000; font-weight: bold; padding: 15px 40px; border-radius: 30px; border: none; font-size: 18px; margin-top: 20px; cursor: pointer; }
@@ -40,13 +37,13 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (本地极速版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (本地引擎+稳定源)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
             <div class="icon-folder">📁</div>
             <h3>点击或拖拽上传</h3>
-            <div class="status-badge" id="statusBadge">⏳ 正在加载本地引擎...</div>
+            <div class="status-badge" id="statusBadge">⏳ 正在连接数据源...</div>
         </div>
         <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
     </div>
@@ -60,34 +57,30 @@
 </div>
 
 <script type="module">
-    // 1. 从你上传的文件里“提取”出 removalBackground 函数
     import { removeBackground } from "./imgly.js";
-    
-    // 2. 把它挂载到全局，让下面的代码能用
     window.imglyRemoveBackground = removeBackground;
-    
-    // 3. 通知界面加载完成
     console.log("Local Engine Loaded!");
 </script>
 
 <script>
-    // 这里把数据源版本升级到 1.7.0，配合你下载的引擎版本
-    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.7.0/dist/";
+    // ✅ 关键修改：
+    // 之前用的饿了么源 (elemecdn) 缺少 1.7.0 的索引文件，导致报错 "Resource metadata not found"。
+    // 这里我们换成 jsDelivr，它文件最全，配合你的本地引擎一定能行。
+    const DATA_URL = "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/";
 
     let isReady = false;
 
-    // 轮询检测引擎是否就绪
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (本地模式)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Ready)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
-            setTimeout(checkEngine, 500); // 没加载好就每 0.5 秒查一次
+            setTimeout(checkEngine, 500);
         }
     }
-    checkEngine(); // 启动检测
+    checkEngine();
 
     // 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
@@ -95,17 +88,22 @@
     dropArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
 
     async function start(file) {
-        if (!isReady) { alert("引擎正在初始化，请稍等 2 秒..."); return; }
+        if (!isReady) { alert("引擎初始化中，请稍等..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在极速计算...";
+        document.getElementById('statusBadge').innerText = "🚀 正在下载模型并计算...";
         
         try {
-            // 调用我们刚才挂载的全局函数
             const blob = await window.imglyRemoveBackground(file, {
                 publicPath: DATA_URL,
+                // debug: true, // 如果还不行，可以开启这个看控制台
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
-                    document.getElementById('statusBadge').innerText = `处理中... ${pct}%`;
+                    // 优化显示文案
+                    if (key.includes('fetch')) {
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型... ${pct}%`;
+                    } else {
+                        document.getElementById('statusBadge').innerText = `🧠 AI 计算中... ${pct}%`;
+                    }
                 }
             });
             
@@ -117,8 +115,8 @@
             document.getElementById('resultArea').style.display = 'block';
             
         } catch (e) {
-            alert("出错: " + e.message);
-            document.getElementById('statusBadge').innerText = "❌ 失败，请重试";
+            alert("错误详情: " + e.message);
+            document.getElementById('statusBadge').innerText = "❌ 失败";
         }
     }
 
