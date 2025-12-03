@@ -3,128 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·知乎极速源）</title>
+    <title>AI抠图（强哥·本地极速版）</title>
     <style>
-        /* 保持你的视觉风格 */
+        /* --- 视觉还原：深蓝科技风 --- */
         body {
-            font-family: sans-serif; background: radial-gradient(circle, #1e3a5f 0%, #020617 100%);
-            color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
+            color: #fff; margin: 0; padding: 40px 20px;
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
         }
-        h1 { margin-bottom: 40px; text-shadow: 0 0 10px #00d4ff; }
+        h1.main-title {
+            font-size: 32px; margin-bottom: 60px; font-weight: 700;
+            background: linear-gradient(to right, #fff, #00d4ff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+        .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
         
-        .main-box {
-            width: 100%; max-width: 800px; background: rgba(255,255,255,0.05);
-            padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
+        .circle-drop-zone {
+            position: relative; width: 480px; height: 480px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            border-radius: 50%; transition: all 0.4s ease-out; margin: 50px;
+            background: rgba(30, 58, 95, 0.3);
+            box-shadow: 0 0 0 25px rgba(31, 78, 121, 0.4), 0 0 0 50px rgba(31, 78, 121, 0.25);
         }
-
-        /* 状态灯 */
-        .status-dot {
-            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
-            background: #fbbf24; margin-right: 8px; box-shadow: 0 0 5px #fbbf24;
-        }
-        .status-text { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
-
-        input[type="file"] { display: none; }
+        .circle-drop-zone:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+        .dashed-ring { position: absolute; inset: 5px; border: 4px dashed #3b6991; border-radius: 50%; animation: spinSlow 24s linear infinite; }
+        @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         
-        .upload-btn {
-            display: inline-block; padding: 15px 40px; border-radius: 50px;
-            background: linear-gradient(90deg, #00d4ff, #0066ff);
-            color: white; font-weight: bold; cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); transition: 0.3s;
-            font-size: 18px; margin: 20px 0;
-        }
-        .upload-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
+        .inner-content { z-index: 2; text-align: center; pointer-events: none; }
+        .icon-folder { font-size: 80px; margin-bottom: 25px; color: #00d4ff; text-shadow: 0 0 15px rgba(0,212,255,0.5); }
+        h3 { font-size: 28px; margin: 0 0 15px 0; }
+        .sub-text { color: #94a3b8; font-size: 18px; }
 
-        img { max-width: 100%; border-radius: 10px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        /* 状态指示灯 */
+        .status-badge {
+            margin-top: 20px; padding: 6px 12px; border-radius: 20px; font-size: 14px;
+            background: #334155; color: #94a3b8; display: inline-block;
+        }
+
+        .result-area { display: none; width: 100%; gap: 30px; grid-template-columns: 1fr 1fr; background: #1e293b; padding: 40px; border-radius: 20px; margin-top: 50px; }
+        .img-box { background: #0f172a; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid #334155; }
+        img { max-width: 100%; max-height: 400px; object-fit: contain; }
+        .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2a2a2a; }
+        
+        .btn { background: #00d4ff; color: #000; font-weight: bold; padding: 16px 32px; border-radius: 10px; border:none; width: 100%; font-size: 18px; margin-top: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h1>🚀 AI 抠图 (最终极速版)</h1>
+<h1 class="main-title">AI抠图（强哥·本地极速版）</h1>
 
-    <div class="main-box">
-        <div id="statusArea">
-            <span class="status-dot" id="dot"></span>
-            <span class="status-text" id="msg">正在从知乎节点加载引擎...</span>
+<div class="main-container">
+    <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
+        <div class="dashed-ring"></div>
+        <div class="inner-content">
+            <div class="icon-folder">📁</div>
+            <h3>拖拽图片到这里</h3>
+            <p class="sub-text">或点击上传</p>
+            <div class="status-badge" id="statusBadge">⏳ 正在加载本地引擎...</div>
         </div>
-
-        <label class="upload-btn" onclick="checkReady()">
-            📁 点击上传图片
-            <input type="file" id="fileInput" accept="image/*" onchange="process(this.files[0])">
-        </label>
-
-        <div id="result" style="margin-top:20px;">
-            <img id="resImg">
-        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
     </div>
 
-    <script src="https://unpkg.zhimg.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
+    <div class="result-area" id="resultArea">
+        <div class="img-box"><h4>原图</h4><img id="origImg"></div>
+        <div class="img-box checkerboard"><h4>抠图结果</h4><img id="resImg"></div>
+    </div>
+    <button class="btn" id="dlBtn" onclick="dl()" style="display:none">📥 下载图片</button>
+</div>
 
-    <script>
-        // 配置：模型数据走饿了么源 (阿里源)，代码走知乎源
-        // 这是一个“双保险”组合
-        const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.0.4/dist/";
+<script src="./imgly.js"></script>
 
-        let isReady = false;
+<script>
+    // 既然核心库本地化了，模型数据我们还是用阿里源（下载大文件比较稳）
+    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.0.4/dist/";
 
-        // 1. 极其简单的检测逻辑
-        window.onload = function() {
-            if (typeof imglyRemoveBackground !== 'undefined') {
-                ready();
-            } else {
-                // 如果没加载出来，尝试等待 2秒
-                setTimeout(() => {
-                    if (typeof imglyRemoveBackground !== 'undefined') ready();
-                    else fail();
-                }, 2000);
-            }
-        };
+    let isReady = false;
 
-        function ready() {
+    window.onload = function() {
+        if (typeof imglyRemoveBackground !== 'undefined') {
             isReady = true;
-            document.getElementById('dot').style.background = '#4ade80'; // 变绿
-            document.getElementById('dot').style.boxShadow = '0 0 5px #4ade80';
-            document.getElementById('msg').innerText = "✅ 引擎已就绪，随时可以工作";
-            document.getElementById('msg').style.color = "#4ade80";
+            document.getElementById('statusBadge').innerText = "✅ 引擎加载成功 (Local)";
+            document.getElementById('statusBadge').style.color = "#4ade80";
+        } else {
+            document.getElementById('statusBadge').innerText = "❌ 文件未找到 (请检查 GitHub 是否上传了 imgly.js)";
+            document.getElementById('statusBadge').style.color = "#ff4d4d";
         }
+    };
 
-        function fail() {
-            document.getElementById('dot').style.background = '#ff4d4d'; // 变红
-            document.getElementById('msg').innerHTML = "❌ 加载失败。请尝试：1.关闭广告拦截插件 2.刷新页面";
-            document.getElementById('msg').style.color = "#ff4d4d";
+    const dropArea = document.getElementById('dropArea');
+    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.transform='scale(1.02)'; });
+    dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; });
+    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
+
+    async function start(file) {
+        if (!isReady) { alert("引擎文件缺失，请确保 imgly.js 已上传！"); return; }
+        
+        document.getElementById('statusBadge').innerText = "⏳ 正在计算中... (首次需下载模型)";
+        document.getElementById('statusBadge').style.color = "#fbbf24";
+        document.getElementById('origImg').src = URL.createObjectURL(file);
+
+        try {
+            const blob = await imglyRemoveBackground(file, {
+                publicPath: DATA_URL,
+                progress: (key, cur, total) => {
+                    const pct = Math.round((cur/total)*100);
+                    document.getElementById('statusBadge').innerText = `🚀 处理中: ${pct}%`;
+                }
+            });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('resImg').src = url;
+            window.dlUrl = url;
+            
+            document.getElementById('resultArea').style.display = 'grid';
+            document.getElementById('dlBtn').style.display = 'block';
+            document.getElementById('dropArea').style.display = 'none';
+        } catch (e) {
+            alert("出错: " + e.message);
+            document.getElementById('statusBadge').innerText = "❌ 处理失败";
         }
+    }
 
-        function checkReady() {
-            if(!isReady) alert("引擎还没到，请看上方的状态文字，如果是红色请刷新！");
-        }
-
-        async function process(file) {
-            if(!file) return;
-            document.getElementById('msg').innerText = "⏳ 正在极速抠图中 (首次需下载模型)...";
-            document.getElementById('msg').style.color = "#fbbf24";
-            document.getElementById('dot').style.background = "#fbbf24";
-
-            try {
-                const blob = await imglyRemoveBackground(file, {
-                    publicPath: DATA_URL,
-                    progress: (key, cur, total) => {
-                         const pct = Math.round((cur/total)*100);
-                         if(key.includes('fetch')) document.getElementById('msg').innerText = `⬇️ 下载模型: ${pct}%`;
-                         else document.getElementById('msg').innerText = `🧠 计算中: ${pct}%`;
-                    }
-                });
-                
-                const url = URL.createObjectURL(blob);
-                document.getElementById('resImg').src = url;
-                document.getElementById('msg').innerText = "🎉 处理成功！长按图片可保存";
-                document.getElementById('dot').style.background = "#4ade80"; // 变绿
-
-            } catch (e) {
-                alert("出错啦：" + e.message);
-                document.getElementById('msg').innerText = "❌ 处理出错，请重试";
-            }
-        }
-    </script>
+    function dl() {
+        const a = document.createElement('a');
+        a.href = window.dlUrl; a.download = '抠图结果.png'; a.click();
+    }
+</script>
 </body>
 </html>
