@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/ai-model/:path*",
+      "destination": "https://unpkg.com/@imgly/background-removal-data@1.5.1/dist/:path*"
+    }
+  ]
+}
