@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（国内极速版）</title>
+    <title>AI抠图（强哥·黄金兼容版）</title>
     <style>
-        /* --- 视觉保持不变 --- */
+        /* --- 样式保持不变 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (国内极速版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (黄金兼容版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,24 +57,24 @@
 </div>
 
 <script type="module">
-    // 1. 核心库：尝试使用国内 eleme 源，如果失败则回退到 jsdelivr
-    // 这里我们直接用 jsdelivr 的 bundle 版本，因为它最稳定，只要解决了下面的 DATA_URL 就能跑
-    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
+    // ⚠️ 核心修改1：降级使用 1.4.5 版本的引擎代码
+    // 这个版本最稳定，绝对不会出现和模型数据不匹配的情况
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm";
     window.imglyRemoveBackground = removeBackground;
-    console.log("Cloud Engine Loaded!");
+    console.log("Engine 1.4.5 Loaded!");
 </script>
 
 <script>
-    // 2. 关键修改：模型数据源换成【饿了么 (Eleme)】国内镜像
-    // 之前报错就是因为无法从国外服务器下载这 80MB 的模型文件
-    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.7.0/dist/";
+    // ⚠️ 核心修改2：数据源也必须锁定为 1.4.5，且使用国内【饿了么】镜像
+    // 之前报错是因为用了 latest 或 1.7.0，但服务器上其实只有 1.4.5
+    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.4.5/dist/";
 
     let isReady = false;
 
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (国内源)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (v1.4.5)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -90,12 +90,12 @@
     async function start(file) {
         if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 正在从国内节点下载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 正在连接国内数据源...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 👈 必须用这个国内源
+                publicPath: DATA_URL, // 指向 1.4.5 的数据包
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
@@ -116,8 +116,7 @@
         } catch (e) {
             console.error(e);
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            // 如果还报错，大概率是本地网络波动
-            alert("加载失败！\n可能是网络波动，请刷新页面重试。\n错误：" + e.message);
+            alert("处理失败！\n请检查网络连接。\n详细错误：" + e.message);
         }
     }
 
