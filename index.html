@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（强哥·修复版）</title>
+    <title>AI抠图（强哥·国内专用稳定版）</title>
     <style>
-        /* --- UI 样式 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -17,20 +16,29 @@
             background: linear-gradient(to right, #fff, #00d4ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             text-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
-            display: block; /* 确保显示 */
         }
         .main-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
         
+        /* 核心圆形拖拽区 */
         .circle-drop-zone {
             position: relative; width: 480px; height: 480px;
             display: flex; justify-content: center; align-items: center; cursor: pointer;
             border-radius: 50%; transition: all 0.4s ease-out; margin: 50px;
             box-shadow: 0 0 0 25px rgba(31, 78, 121, 0.4), 0 0 0 50px rgba(31, 78, 121, 0.25), 0 0 0 80px rgba(31, 78, 121, 0.1); 
-            background: rgba(30, 58, 95, 0.3); /* 增加背景色确保可见 */
+            background: rgba(30, 58, 95, 0.3);
+            /* 默认不可点击，等引擎加载完 */
+            pointer-events: none; opacity: 0.6; grayscale: 100%;
         }
-        .circle-drop-zone:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 0 0 25px rgba(0, 212, 255, 0.3), 0 0 0 50px rgba(0, 212, 255, 0.15), 0 0 0 80px rgba(0, 212, 255, 0.05); }
+        /* 激活状态 */
+        .circle-drop-zone.ready {
+            pointer-events: auto; opacity: 1; grayscale: 0%;
+            box-shadow: 0 0 0 25px rgba(0, 212, 255, 0.1), 0 0 0 50px rgba(0, 212, 255, 0.05);
+        }
+
+        .circle-drop-zone.ready:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+        
         .dashed-ring { position: absolute; inset: 5px; border: 4px dashed #3b6991; border-radius: 50%; animation: spinSlow 24s linear infinite; }
-        .circle-drop-zone:hover .dashed-ring { border-color: #00d4ff; }
+        .circle-drop-zone.ready .dashed-ring { border-color: #00d4ff; }
         @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         
         .inner-content {
@@ -39,10 +47,19 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             text-align: center; pointer-events: none; z-index: 2;
         }
-        .icon-folder { font-size: 80px; margin-bottom: 25px; color: #00d4ff; text-shadow: 0 0 15px rgba(0,212,255,0.5); }
+        .icon-folder { font-size: 80px; margin-bottom: 25px; color: #94a3b8; transition: 0.3s; }
+        .circle-drop-zone.ready .icon-folder { color: #00d4ff; text-shadow: 0 0 15px rgba(0,212,255,0.5); }
+        
         h3 { margin: 0 0 15px 0; font-size: 28px; font-weight: 600; color: #fff; }
         .sub-text { color: #94a3b8; font-size: 18px; margin: 0; }
         .highlight-link { color: #00d4ff; text-decoration: none; border-bottom: 1px dotted #00d4ff; pointer-events: auto; }
+
+        .status-badge {
+            margin-top: 20px; padding: 6px 12px; border-radius: 20px; font-size: 14px;
+            background: #334155; color: #94a3b8; transition: 0.3s;
+        }
+        .ready .status-badge { background: #00d4ff; color: #000; font-weight: bold; box-shadow: 0 0 10px #00d4ff; }
+        .error .status-badge { background: #ff4d4d; color: white; }
 
         .progress-box, .result-area, .error-msg { display: none; width: 100%; max-width: 500px; margin-top: 60px; }
         .progress-box { background: #1e293b; padding: 25px; border-radius: 16px; box-shadow: 0 4px 25px rgba(0,0,0,0.3); }
@@ -54,24 +71,24 @@
         img { max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 12px; }
         .checkerboard { background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%); background-size: 20px 20px; background-color: #2a2a2a; }
         
-        .btn { background: linear-gradient(to right, #00d4ff, #0099ff); color: #0f172a; font-weight: 800; border: none; padding: 16px 32px; border-radius: 10px; cursor: pointer; margin-top: 35px; width: 100%; font-size: 18px; transition: 0.3s; box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 8px 25px rgba(0, 212, 255, 0.5); color: white; }
+        .btn { background: linear-gradient(to right, #00d4ff, #0099ff); color: #0f172a; font-weight: 800; border: none; padding: 16px 32px; border-radius: 10px; cursor: pointer; margin-top: 35px; width: 100%; font-size: 18px; transition: 0.3s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5); color: white; }
         
         .error-msg { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 1px solid #ff6b6b; text-align: left; }
     </style>
 </head>
 <body>
 
-<h1 class="main-title">AI抠图（强哥版）</h1>
+<h1 class="main-title">AI抠图（强哥·稳定版）</h1>
 
 <div class="main-container">
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div class="dashed-ring"></div>
         <div class="inner-content">
             <div class="icon-folder">📁</div>
-            <h3>拖拽图片到这里</h3>
-            <p class="sub-text">或者, <span class="highlight-link">点击浏览本地文件</span></p>
-            <p class="sub-text" style="font-size: 14px; margin-top: 20px; opacity: 0.7;">🚀 极速通道 Ready</p>
+            <h3 id="mainText">正在连接引擎...</h3>
+            <p class="sub-text">请稍候，正在从国内节点加载 AI</p>
+            <div class="status-badge" id="statusBadge">⏳ 初始化中</div>
         </div>
         <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
     </div>
@@ -93,44 +110,73 @@
     <button class="btn" id="dlBtn" onclick="dl()" style="display:none">📥 下载无损 PNG</button>
 </div>
 
-<script src="https://unpkg.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js"></script>
+<script 
+    src="https://npm.elemecdn.com/@imgly/background-removal@1.0.4/dist/imgly-background-removal.min.js" 
+    onload="onLibLoaded()" 
+    onerror="onLibError()">
+</script>
 
 <script>
-    // 定义模型数据源
-    const DATA_URL = "https://unpkg.com/@imgly/background-removal-data@1.0.4/dist/";
+    // 配置模型数据走国内源
+    const DATA_URL = "https://npm.elemecdn.com/@imgly/background-removal-data@1.0.4/dist/";
+    let isReady = false;
+
+    // 1. 库加载成功的回调
+    function onLibLoaded() {
+        isReady = true;
+        const dz = document.getElementById('dropArea');
+        dz.classList.add('ready');
+        document.getElementById('mainText').innerText = "拖拽图片到这里";
+        document.getElementById('statusBadge').innerText = "⚡ AI 引擎已就绪";
+        // 预热一下
+        console.log("Engine Loaded via Elemecdn");
+    }
+
+    // 2. 库加载失败的回调
+    function onLibError() {
+        const dz = document.getElementById('dropArea');
+        dz.classList.add('error');
+        document.getElementById('mainText').innerText = "加载失败";
+        document.getElementById('statusBadge').innerText = "❌ 网络连接错误";
+        showError("无法连接到国内加速节点，请检查您的网络。");
+    }
 
     let pendingFile = null;
 
+    // 拖拽逻辑
     const dropArea = document.getElementById('dropArea');
-    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.transform='scale(1.02)'; });
+    dropArea.addEventListener('dragover', e => { e.preventDefault(); if(isReady) dropArea.style.transform='scale(1.02)'; });
     dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; });
-    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.transform='scale(1)'; if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
+    dropArea.addEventListener('drop', e => { 
+        e.preventDefault(); 
+        dropArea.style.transform='scale(1)'; 
+        if(!isReady) return; 
+        if(e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); 
+    });
 
     function start(file) {
+        if (!isReady) {
+            alert("AI 引擎尚未加载完成，请稍等...");
+            return;
+        }
         pendingFile = file;
         resetUI();
         document.getElementById('origImg').src = URL.createObjectURL(file);
         
-        // 延时一点点执行，给 UI 反应时间
+        // 延迟执行确保 UI 渲染
         setTimeout(() => runAI(), 100);
     }
 
     async function runAI() {
-        // 检测库是否加载成功
-        if (typeof imglyRemoveBackground === 'undefined') {
-            showError("网络加载组件慢，请刷新页面再试一次。");
-            return;
-        }
-
-        updateProgress("AI 引擎启动，正在加载模型...", 10);
+        updateProgress("正在从国内节点调取模型...", 5);
         try {
             const blob = await imglyRemoveBackground(pendingFile, {
                 publicPath: DATA_URL,
-                // 去掉 fetch: { mode: 'cors' }，让浏览器自动处理跨域，兼容性更好
+                // 关键：不强制 fetch mode，让浏览器自动适配
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
-                    if(key.includes('fetch')) updateProgress(`加载模型: ${pct}%`, pct);
-                    else updateProgress(`AI 计算中: ${pct}%`, pct);
+                    if(key.includes('fetch')) updateProgress(`下载模型组件: ${pct}%`, pct);
+                    else updateProgress(`AI 智能计算中: ${pct}%`, pct);
                 }
             });
             const url = URL.createObjectURL(blob);
@@ -139,7 +185,7 @@
             showResult();
         } catch (e) {
             console.error(e);
-            showError(`错误: ${e.message}<br>请确保网络通畅`);
+            showError(`处理失败: ${e.message}`);
         }
     }
 
