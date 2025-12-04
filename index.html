@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（Vercel 中转版）</title>
+    <title>AI抠图（Vercel 终极修复版）</title>
     <style>
         /* --- 样式不变 --- */
         body {
@@ -37,7 +37,7 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (Vercel 中转版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (1.5.1 终极版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
@@ -57,15 +57,16 @@
 </div>
 
 <script type="module">
-    // 1. 引擎：直接引用 1.5.1 国际版
-    import { removeBackground } from "https://unpkg.com/@imgly/background-removal@1.5.1/dist/imgly-background-removal.esm.js";
+    // ⚠️ 关键修正：不要用本地的 imgly.js！
+    // 直接引用云端 1.5.1 版本的引擎，确保和数据包版本完全一致
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.1/+esm";
     window.imglyRemoveBackground = removeBackground;
-    console.log("Engine Loaded!");
+    console.log("Engine 1.5.1 Loaded!");
 </script>
 
 <script>
-    // ✅ 2. 关键修改：路径改为本地的 '/ai-model/'
-    // 实际上是让 Vercel 服务器去帮你从外网取数据，绕过你本地的网络限制
+    // ⚠️ 关键配置：指向 Vercel 的代理路径
+    // 这个路径会被 vercel.json 拦截，并转发到 jsdelivr 获取 1.5.1 的数据
     const DATA_URL = "/ai-model/";
 
     let isReady = false;
@@ -73,7 +74,7 @@
     function checkEngine() {
         if (window.imglyRemoveBackground) {
             isReady = true;
-            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (Vercel Proxy)";
+            document.getElementById('statusBadge').innerText = "✅ 引擎就绪 (1.5.1)";
             document.getElementById('statusBadge').style.background = "#4ade80";
             document.getElementById('statusBadge').style.color = "#000";
         } else {
@@ -89,18 +90,25 @@
     async function start(file) {
         if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 Vercel 正在加速加载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 Vercel 正在下载模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
+            // 调试信息：先测试一下代理通不通
+            // 这一步不是必须的，但在控制台能看到结果
+            fetch(DATA_URL + 'manifest.json').then(res => {
+                if(!res.ok) console.error("❌ 代理测试失败，请检查 vercel.json");
+                else console.log("✅ 代理测试成功，manifest.json 可访问");
+            });
+
             const blob = await window.imglyRemoveBackground(file, {
-                publicPath: DATA_URL, // 指向 Vercel 转发路径
+                publicPath: DATA_URL, 
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 云端加速下载: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 代理下载中: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 正在计算: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 智能计算中: ${pct}%`;
                     }
                 }
             });
@@ -115,7 +123,7 @@
         } catch (e) {
             console.error(e);
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("处理失败！建议刷新后重试。");
+            alert("处理失败！\n1. 请确认 vercel.json 已上传。\n2. 尝试刷新页面清除缓存。");
         }
     }
 
