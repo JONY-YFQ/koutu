@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/ai-model/:path*",
-      "destination": "https://unpkg.com/@imgly/background-removal-data@1.5.1/dist/:path*"
+      "destination": "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.1/dist/:path*"
     }
   ]
 }
