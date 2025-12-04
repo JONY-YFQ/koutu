@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI抠图（Vercel 终极修复版）</title>
+    <title>AI抠图 (1.5.1 终极纯净版)</title>
     <style>
-        /* --- 样式不变 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: radial-gradient(circle at center, #1e3a5f 0%, #0f172a 70%, #020617 100%);
@@ -24,7 +23,6 @@
         .circle-drop-zone:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 212, 255, 0.3); }
         .icon-folder { font-size: 80px; margin-bottom: 20px; color: #00d4ff; }
         h3 { font-size: 28px; margin: 0 0 10px 0; }
-        .sub-text { color: #94a3b8; font-size: 16px; }
         .status-badge {
             margin-top: 20px; padding: 8px 16px; border-radius: 20px; font-size: 14px;
             background: #334155; color: #fbbf24; transition: 0.3s;
@@ -37,13 +35,13 @@
 <body>
 
 <div class="main-container">
-    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (1.5.1 终极版)</h1>
+    <h1 style="margin-bottom: 40px;">🚀 AI 抠图 (1.5.1 纯净版)</h1>
 
     <div class="circle-drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <div style="z-index: 2; text-align: center;">
             <div class="icon-folder">📁</div>
             <h3>点击或拖拽上传</h3>
-            <div class="status-badge" id="statusBadge">⏳ 系统初始化中...</div>
+            <div class="status-badge" id="statusBadge">⏳ 等待初始化...</div>
         </div>
         <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="start(this.files[0])">
     </div>
@@ -57,16 +55,15 @@
 </div>
 
 <script type="module">
-    // ⚠️ 关键修正：不要用本地的 imgly.js！
-    // 直接引用云端 1.5.1 版本的引擎，确保和数据包版本完全一致
+    // ⚠️ 关键：直接引用云端的 1.5.1 引擎
+    // 绝对不要改回本地引用！
     import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.1/+esm";
     window.imglyRemoveBackground = removeBackground;
-    console.log("Engine 1.5.1 Loaded!");
+    console.log("Engine 1.5.1 Loaded from Cloud");
 </script>
 
 <script>
-    // ⚠️ 关键配置：指向 Vercel 的代理路径
-    // 这个路径会被 vercel.json 拦截，并转发到 jsdelivr 获取 1.5.1 的数据
+    // ⚠️ 关键：通过 Vercel 代理去拿 1.5.1 的数据
     const DATA_URL = "/ai-model/";
 
     let isReady = false;
@@ -90,25 +87,24 @@
     async function start(file) {
         if (!isReady) { alert("引擎加载中，请稍后..."); return; }
         
-        document.getElementById('statusBadge').innerText = "🚀 Vercel 正在下载模型...";
+        document.getElementById('statusBadge').innerText = "🚀 正在通过 Vercel 下载模型...";
         document.getElementById('statusBadge').style.background = "#fbbf24";
         
         try {
-            // 调试信息：先测试一下代理通不通
-            // 这一步不是必须的，但在控制台能看到结果
-            fetch(DATA_URL + 'manifest.json').then(res => {
-                if(!res.ok) console.error("❌ 代理测试失败，请检查 vercel.json");
-                else console.log("✅ 代理测试成功，manifest.json 可访问");
-            });
+            // 调试：测试代理是否通畅
+            console.log("Testing proxy connection...");
+            const testFetch = await fetch(DATA_URL + 'manifest.json');
+            if (!testFetch.ok) throw new Error("代理连接失败 (Manifest not found)");
+            console.log("Proxy OK!");
 
             const blob = await window.imglyRemoveBackground(file, {
                 publicPath: DATA_URL, 
                 progress: (key, cur, total) => {
                     const pct = Math.round((cur/total)*100);
                     if (key.includes('fetch')) {
-                        document.getElementById('statusBadge').innerText = `⬇️ 代理下载中: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `⬇️ 下载模型: ${pct}%`;
                     } else {
-                        document.getElementById('statusBadge').innerText = `🧠 智能计算中: ${pct}%`;
+                        document.getElementById('statusBadge').innerText = `🧠 智能计算: ${pct}%`;
                     }
                 }
             });
@@ -123,7 +119,7 @@
         } catch (e) {
             console.error(e);
             document.getElementById('statusBadge').innerText = "❌ 失败: " + e.message;
-            alert("处理失败！\n1. 请确认 vercel.json 已上传。\n2. 尝试刷新页面清除缓存。");
+            alert("错误！\n1. 请确认已删除 imgly.js 文件。\n2. 请确认 vercel.json 内容正确。\n错误详情：" + e.message);
         }
     }
 
